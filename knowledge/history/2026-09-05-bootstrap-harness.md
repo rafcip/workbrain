@@ -18,7 +18,7 @@ VPS come SysAdmin e costruire l'harness Claude Code di WorkBrain, senza implemen
   `knowledge/{history,platform}`, `reports/`, `scripts/`, `tests/`, `.mcp.json` (Plaud MCP), `.gitignore`.
 - Rules: continuity, procedures (P-001..P-006), bug-registry (PAT-01..06), domini-riservatezza, schema-kb.
 - Agents: ricercatore-sota, reviewer, curatore-kb. Skill: sync-plaud (pattern SOTA con counter-example reale).
-- Hook: `block-secrets`, `block-opentext`, `run-tests` — **testati con 9 input di prova, tutti con l'esito atteso**.
+- Hook: `block-secrets`, `block-opentext`, `run-tests` — **testati con `tests/test_hooks.sh` (11/11 verdi)**, riproducibile.
 - Docs: 00-lineage-legal-agency, 02-architettura-target (BOZZA), 05-infrastruttura-vps, 10-stato-e-backlog, README.
 - Report: BRIEF-001 (Step 0 misure reali → scelte provider/storage/embedding/runner → fasi F1-F6 con test di accettazione).
 
@@ -31,7 +31,8 @@ Inoltre la sessione di bootstrap è girata **come root** (non era possibile camb
 stati creati e poi `chown -R ubuntu`. Le sessioni future vanno aperte come `ubuntu`.
 
 ## Verifiche
-- `wc -l CLAUDE.md` = 64. Hook: 9/9 test con esito atteso (block su segreti/env.prod/marker opentext; pass su prosa e placeholder).
+- `wc -l CLAUDE.md` = 64. Hook: `tests/test_hooks.sh` → 11/11 verdi (block su segreti/env.prod/marker opentext; pass su prosa e placeholder; scope fuori-repo corretto).
+- Reviewer indipendente invocato pre-consegna: verdetto **GO**, nessun rilievo bloccante; 🟡 minori assorbiti (test hook committato).
 - UFW `active`, fail2ban `active`, Node/CLI installati (versioni sopra).
 
 ## Bloccanti aperti verso Raf

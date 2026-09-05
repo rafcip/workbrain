@@ -6,7 +6,8 @@ Il file aggiornato più spesso. Fonte di verità sullo stato operativo. All'avvi
 (vedi `.claude/rules/continuity.md`).
 
 ## Stato operativo
-- **Fase**: bootstrap dell'harness completato. Nessuna pipeline in esecuzione. Nessun servizio systemd WorkBrain attivo.
+- **Fase**: bootstrap dell'harness completato e **rivisto (verdetto GO del reviewer)**. Nessuna pipeline in esecuzione. Nessun servizio systemd WorkBrain attivo.
+- Hook verificati con suite committata `tests/test_hooks.sh` (11/11 verdi).
 - **VPS**: in ordine (utente `ubuntu`, UFW+fail2ban attivi, tool e CLI installati). Dettaglio: `docs/05-infrastruttura-vps.md`.
 - **Provider STT / storage / embedding / runner**: **non ancora scelti** → si decidono in `reports/BRIEF-001-analisi-soluzione.md`.
 
