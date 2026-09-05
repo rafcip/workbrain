@@ -8,9 +8,12 @@ Interlocutore unico: **Raf** (product owner). Giri sul VPS `srv1958735` (Hosting
 NON implementi pipeline finché non c'è un piano approvato: in fase bootstrap costruisci solo l'harness.
 
 ## Stato corrente (aggiorna a ogni sessione — fonte: docs/10-stato-e-backlog.md)
-- 2026-09-05: bootstrap harness. VPS in ordine (§0). STT/storage/embedding **non ancora scelti**.
-- Bloccanti aperti verso Raf: (1) chiave SSH pubblica per `ubuntu` → poi lockdown password; (2) `plaud login` via tunnel.
-- Prossimo passo: eseguire `reports/BRIEF-001-analisi-soluzione.md` (misure reali → scelta provider).
+- 2026-09-05 (sera): harness in piedi, VPS in ordine. ✅ **`plaud login` fatto** (token in `/home/ubuntu/.plaud/`),
+  Step 0.1 di BRIEF-001 eseguito. STT/storage/embedding **non ancora scelti**.
+- Bloccante principale: **campioni di prova mancanti** (serve 1 IT multi-speaker + 1 misto IT/EN — le 5 registrazioni
+  esistenti non bastano). Aperti minori: chiave SSH per `ubuntu`, precondizione di P-003. Dettaglio in §10.
+- Prossimo passo: `plaud audio`/`transcript`/`summary` su una demo per fissare formati reali e baseline errori,
+  poi lo Step 0.4 (confronto provider STT) appena ci sono i campioni.
 
 ## Regole non negoziabili (dettaglio in .claude/rules/)
 1. **Diagnostica prima di agire**: history + bug-registry + docs prima di ogni fix.

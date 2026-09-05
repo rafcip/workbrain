@@ -1,5 +1,13 @@
 # 2026-09-05 — Copia testo dalla console web Hostinger: mouse tracking di Claude Code
 
+> ⚠️ **RETTIFICA (stessa giornata, sessione serale)** — la causa qui sotto è **sbagliata**, o quantomeno
+> non dimostrata. Il fix `CLAUDE_CODE_DISABLE_MOUSE=1` **non è mai entrato in funzione**: la variabile è
+> stata scritta in `.bashrc` dopo l'avvio del processo Claude Code, quindi quel processo non l'ha mai avuta
+> (verificato su `/proc/<pid>/environ`). La causa reale era l'impostazione `"tui": "fullscreen"` scelta al
+> primo avvio; risolta con `/tui default`. Storia completa: [[2026-09-05-login-plaud-e-fix-copia-tui]].
+> Lezione: un fix che richiede un riavvio non è verificato finché il riavvio non è avvenuto — e "da
+> confermare da Raf" in fondo a una history è un esito mancante, non un esito.
+
 ## Sintomo
 Raf, collegato dalla **console web di Hostinger hPanel**, non riesce a copiare testo: selezione col mouse +
 tasto destro non danno il menu "Copia" del browser. Compare invece il messaggio
