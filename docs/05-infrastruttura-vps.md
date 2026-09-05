@@ -33,7 +33,7 @@ Ogni voce riporta l'esito reale, non l'intenzione.
 - **fail2ban attivo**: jail `sshd` abilitata (backend systemd, bantime 1h, maxretry 5). `systemctl is-active` = active.
 
 ## Strumenti installati
-- Sistema: `git`, `jq`, `curl`, `unzip`, `python3` 3.12 + `python3-venv` + `pip`.
+- Sistema: `git`, `jq`, `curl`, `unzip`, `tmux` 3.4, `python3` 3.12 + `python3-venv` + `pip`.
 - Per l'utente `ubuntu`: **nvm** v0.40.1 → **Node v20.20.2** (default), npm 10.8.2.
 - Globali (node di `ubuntu`): **`@plaud-ai/cli` 0.3.11**, **`@anthropic-ai/claude-code` 2.1.197**.
 - Plaud MCP: non installato staticamente; invocato on-demand via `.mcp.json` (`npx -y @plaud-ai/mcp@latest`).
