@@ -1,0 +1,56 @@
+{
+  "$schema": "https://json.schemastore.org/claude-code-settings.json",
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "Write|Edit|MultiEdit",
+        "hooks": [
+          { "type": "command", "command": "$CLAUDE_PROJECT_DIR/.claude/hooks/block-secrets.sh" },
+          { "type": "command", "command": "$CLAUDE_PROJECT_DIR/.claude/hooks/block-opentext.sh" }
+        ]
+      }
+    ],
+    "PostToolUse": [
+      {
+        "matcher": "Write|Edit|MultiEdit",
+        "hooks": [
+          { "type": "command", "command": "$CLAUDE_PROJECT_DIR/.claude/hooks/run-tests.sh" }
+        ]
+      }
+    ]
+  },
+  "permissions": {
+    "allow": [
+      "Read(//home/ubuntu/workbrain/**)",
+      "Bash(git status:*)",
+      "Bash(git diff:*)",
+      "Bash(git log:*)",
+      "Bash(git ls-files:*)",
+      "Bash(ls:*)",
+      "Bash(find:*)",
+      "Bash(grep:*)",
+      "Bash(rg:*)",
+      "Bash(wc:*)",
+      "Bash(jq:*)",
+      "Bash(plaud me)",
+      "Bash(plaud recent:*)",
+      "Bash(systemctl status:*)",
+      "Bash(systemctl --user status:*)",
+      "Bash(ufw status:*)",
+      "Bash(fail2ban-client status:*)"
+    ],
+    "deny": [
+      "Read(/srv/workbrain/env.prod)",
+      "Read(//home/ubuntu/.plaud/**)",
+      "Read(//home/ubuntu/.ssh/**)",
+      "Read(//etc/ssh/**)",
+      "Bash(cat /srv/workbrain/env.prod)",
+      "Bash(cat //home/ubuntu/.plaud/*)",
+      "Bash(rm -rf:*)",
+      "Bash(sudo rm:*)",
+      "Bash(mkfs:*)",
+      "Bash(dd:*)",
+      "Bash(chmod -R 777:*)"
+    ]
+  }
+}

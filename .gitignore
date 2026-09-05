@@ -1,0 +1,25 @@
+# Segreti e dati — MAI in git (i dati veri vivono in /srv/workbrain, fuori dal repo)
+env.prod
+*.env
+.env*
+*.key
+*.pem
+id_rsa*
+# eventuali symlink/copie locali dei dati
+/raw/
+/vault/
+/db/
+/backups/
+data/
+# rumore
+node_modules/
+__pycache__/
+*.pyc
+.venv/
+venv/
+*.bak-pre-*
+.DS_Store
+*.log
+# scratch
+scratch/
+tmp/
