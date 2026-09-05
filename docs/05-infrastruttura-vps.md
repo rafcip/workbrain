@@ -37,6 +37,14 @@ Ogni voce riporta l'esito reale, non l'intenzione.
 - Per l'utente `ubuntu`: **nvm** v0.40.1 → **Node v20.20.2** (default), npm 10.8.2.
 - Globali (node di `ubuntu`): **`@plaud-ai/cli` 0.3.11**, **`@anthropic-ai/claude-code` 2.1.197**.
 - Plaud MCP: non installato staticamente; invocato on-demand via `.mcp.json` (`npx -y @plaud-ai/mcp@latest`).
+- `tmux`: `/root/.tmux.conf` con **`set -g mouse off`** (2026-09-05). Provato `mouse on` su richiesta di Raf e
+  **rimesso off**: l'accesso avviene dalla **console web di Hostinger hPanel**, dove `mouse on` fa catturare a tmux
+  gli eventi del mouse e impedisce la selezione testo del browser (niente copia). Non riattivare senza prima
+  verificare da quale canale ci si collega. ⚠️ Config del solo utente `root`: da replicare in
+  `/home/ubuntu/.tmux.conf` quando si opererà come `ubuntu`.
+- `CLAUDE_CODE_DISABLE_MOUSE=1` in `/root/.bashrc` (2026-09-05): la TUI di Claude Code attiva il mouse tracking e
+  nella console web hPanel impedisce la selezione/copia del browser. Backup `.bak-pre-disable-mouse-2026-09-05`.
+  Diagnosi completa in `knowledge/history/2026-09-05-copia-testo-console-web-hostinger.md`.
 
 ## Cartelle e dati (fuori dal repo)
 - Repo harness: **`/home/ubuntu/workbrain`** (git). Dati veri **fuori dal repo**:
