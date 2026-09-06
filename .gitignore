@@ -11,6 +11,10 @@ id_rsa*
 /db/
 /backups/
 data/
+# impostazioni locali di Claude Code (per-macchina, non condivise)
+# NB: finora erano escluse solo dal gitignore globale di root — invisibile a ogni altro utente/macchina (AUDIT-001 R-12).
+.claude/settings.local.json
+
 # rumore
 node_modules/
 __pycache__/
