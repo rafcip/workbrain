@@ -45,10 +45,9 @@ Il file aggiornato più spesso. Fonte di verità sullo stato operativo. All'avvi
    **non basta**: c'è 1 sola registrazione IT da 1m06s, 3 demo Plaud in EN, e **nessun campione misto IT/EN**.
    Servono 2-3 registrazioni `personal` fatte apposta: una **IT multi-speaker** con termini tecnici, una **mista
    IT/EN**. Senza, le misure di WER/glossario/diarizzazione non sono rappresentative. È il bloccante numero uno adesso.
-2. 🔴 **Chiave SSH pubblica** per l'utente `ubuntu` — **promossa a bloccante il 2026-09-06**. Non blocca la pipeline
-   (il tunnel funziona con la password di root) ma **blocca PLAN-001 Fase C**: `ubuntu` ha la password bloccata
-   (`passwd -S ubuntu` → `L`), quindi ogni sessione gira come root, e Docker rootless *per `ubuntu`* + i systemd
-   user timer non sono installabili né provabili da root. È anche la causa della deriva di proprietà dei file.
+2. ~~Chiave SSH per `ubuntu`~~ ✅ **CHIUSA il 2026-09-06**: chiave dedicata `id_workbrain` installata e login
+   verificato sul log (`Accepted publickey for ubuntu … ED25519 SHA256:S1HP1AGX…`).
+   Vedi [[2026-09-06-chiave-ssh-ubuntu-attiva]]. Sblocca PLAN-001 A2 e la Fase C.
 2b. 🔴 **Dove mettere il remote git** (GitHub/GitLab, privato). Chiave di deploy generata sul VPS, Raf incolla solo
    la pubblica. Chiude AUDIT-001 R-01, il rilievo più grave.
 2c. 🟡 **Ok a leggere** `/etc/ssh/sshd_config.d/99-workbrain-lockdown.conf.disabled` (una lettura sola, negata dalle
