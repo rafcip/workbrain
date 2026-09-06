@@ -28,14 +28,31 @@ Il file aggiornato più spesso. Fonte di verità sullo stato operativo. All'avvi
   - ▶️ **Eseguibile subito senza nuovi campioni**: `plaud audio`/`transcript`/`summary` su una registrazione demo
     per fissare formati e flag reali della 0.3.11, e la baseline degli errori sui termini tecnici.
 
+## Piano di consolidamento (2026-09-06)
+- `reports/AUDIT-001-infrastruttura-e-harness.md` — audit eseguito. 3 rilievi 🔴 strutturali (nessun backup/remote,
+  gate dei test inerte, hook aggirabili via Bash) + 1 riparato (proprietà del repo).
+- `reports/PLAN-001-consolidamento-infrastruttura.md` — **BOZZA in attesa di ok**. Decisioni D-01…D-12 prese come
+  owner, con alternativa scartata e condizione di cambio idea. Fasi A (sbloccare) → B (guardie vere) → C (fondamenta
+  container) → D (piattaforma). **La Fase C non è eseguibile finché si gira come root.**
+- Decisioni di Raf del 2026-09-06: [[2026-09-06-DECISIONE-perimetro-opentext]] (D-11 chiusa, nessun cambio di
+  architettura) e [[2026-09-06-DECISIONE-prodotto-futuro]] (fondamenta da prodotto, prodotto no).
+- Da fare quando PLAN-001 è approvato: aggiungere `owner` a `.claude/rules/schema-kb.md` (frontmatter + colonna DB)
+  e i criteri eliminatori a BRIEF-001 (uso commerciale, accordo sul trattamento). Lo schema è BOZZA e non ci sono
+  ancora dati: costo zero adesso, migrazione dopo.
+
 ## In attesa di decisione / azione di Raf
 1. 🔴 **Campioni di prova per lo Step 0 di BRIEF-001.** L'inventario (`plaud recent --days 30` → 5 registrazioni)
    **non basta**: c'è 1 sola registrazione IT da 1m06s, 3 demo Plaud in EN, e **nessun campione misto IT/EN**.
    Servono 2-3 registrazioni `personal` fatte apposta: una **IT multi-speaker** con termini tecnici, una **mista
    IT/EN**. Senza, le misure di WER/glossario/diarizzazione non sono rappresentative. È il bloccante numero uno adesso.
-2. 🟡 **Chiave SSH pubblica** per l'utente `ubuntu`. **Non blocca più la pipeline** (il tunnel funziona con la
-   password di root), ma serve per: lavorare come `ubuntu` invece che root (PAT-04) — `ubuntu` ha la password
-   **bloccata** (`passwd -S ubuntu` → `L`), quindi senza chiave non ci si può collegare come lui — e per P-003.
+2. 🔴 **Chiave SSH pubblica** per l'utente `ubuntu` — **promossa a bloccante il 2026-09-06**. Non blocca la pipeline
+   (il tunnel funziona con la password di root) ma **blocca PLAN-001 Fase C**: `ubuntu` ha la password bloccata
+   (`passwd -S ubuntu` → `L`), quindi ogni sessione gira come root, e Docker rootless *per `ubuntu`* + i systemd
+   user timer non sono installabili né provabili da root. È anche la causa della deriva di proprietà dei file.
+2b. 🔴 **Dove mettere il remote git** (GitHub/GitLab, privato). Chiave di deploy generata sul VPS, Raf incolla solo
+   la pubblica. Chiude AUDIT-001 R-01, il rilievo più grave.
+2c. 🟡 **Ok a leggere** `/etc/ssh/sshd_config.d/99-workbrain-lockdown.conf.disabled` (una lettura sola, negata dalle
+   deny-rule): serve a non eseguire P-003 alla cieca.
 3. 🟡 **Rimuovere `CLAUDE_CODE_DISABLE_MOUSE=1`** da `/root/.bashrc` (riga 108): workaround mai dimostrato,
    inattivo oggi ma che si attiverà da solo alla prossima shell nuova. Config → serve l'ok di Raf (regola #3).
 4. 🟡 **Precondizione mancante in P-003**: prima di eseguirla va letto `99-workbrain-lockdown.conf.disabled` e

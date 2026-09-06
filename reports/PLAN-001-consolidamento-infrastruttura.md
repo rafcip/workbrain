@@ -178,9 +178,13 @@ esplicito di Raf per quella singola lettura. **Non eseguo P-003 alla cieca.**
   Una procedura che l'harness blocca è una procedura rotta.
 - **Replicare `.tmux.conf`** in `/home/ubuntu/`.
 
-### D-11 — 🔴 Questa non è una decisione mia: `opentext` su un VPS di un fornitore
+### D-11 — ✅ CHIUSA il 2026-09-06: il dominio del datore di lavoro resta nel perimetro
 
-**Non decido, segnalo, e chiedo che tu decida prima che costruiamo sopra.**
+**Risposta di Raf: nessun problema di policy.** Il dominio resta dentro WorkBrain, `monarx-agent` resta e non si
+tocca, l'architettura **non cambia**. Verbale in [[2026-09-06-DECISIONE-perimetro-opentext]].
+Contestualmente Raf ha posto il requisito *"che la piattaforma sia sicura"* → confluisce in **D-12**.
+
+Resta agli atti l'analisi che ha motivato la domanda, perché il rischio descritto non sparisce con la risposta:
 
 Il dominio `opentext` contiene, per definizione, **informazione riservata di un datore di lavoro**. Oggi quella
 informazione andrebbe a vivere su un VPS Hostinger su cui gira **`monarx-agent` come root** — un agente di sicurezza
@@ -188,13 +192,41 @@ del fornitore, con accesso al filesystem. Va detto con precisione: **la cifratur
 Un processo root sulla macchina vede i dati in chiaro nel momento in cui la pipeline li elabora. Non è un difetto da
 correggere: è una proprietà di dove abbiamo scelto di girare.
 
-Le domande da chiudere prima di F1, non dopo:
-1. La policy del tuo datore di lavoro consente che materiale riservato risieda su un VPS personale di un fornitore terzo?
-2. Se no: `opentext` esce dal perimetro (niente audio di quel dominio nella pipeline), oppure viene trattato altrove?
-3. Se sì: lo mettiamo per iscritto in una `DECISIONE-*` datata, così la scelta è tracciata e non implicita.
+Il rischio resta reale ed è ora **accettato consapevolmente**, che è cosa diversa dall'essere ignorato. Non lo
+mitigo con teatro tecnico (cifrare a riposo contro un agente che gira come root non serve): lo mitigo con le stesse
+scelte che valgono per tutto il resto — privilegio minimo per step (D-03), rootless (D-01), niente porte pubblicate.
 
-Se la risposta è (2), **cambia l'architettura**, non solo la configurazione: cambia la classificazione, cambia cosa
-`sync-plaud` può scaricare, cambia il modello del vault. Per questo va chiusa adesso: è molto più cara dopo.
+### D-12 — Fondamenta compatibili con un prodotto: **porte a senso unico sì, prodotto no**
+
+**Contesto.** Raf: *"un'idea futura è trasformarla in un prodotto da commercializzare, quindi dobbiamo cominciare a
+mettere le fondamenta anche se in questo momento abbiamo uno scopo solo di WorkBrain personale."*
+Verbale completo in [[2026-09-06-DECISIONE-prodotto-futuro]].
+
+**Decisione.** **Non costruisco un prodotto adesso.** Multi-tenancy, autenticazione, billing e pannelli per un
+utente solo sarebbero lavoro sprecato, contrari ai principi del progetto, e il modo più rapido per non finire mai
+WorkBrain. Quello che faccio è pagare il **piccolo** prezzo solo dove il prezzo *dopo* sarebbe enorme.
+
+**Il criterio: porte a senso unico vs porte a doppio senso.**
+
+*A senso unico — le progetto già compatibili, perché si infilano in ogni riga di codice e di DB:*
+1. **`owner` nel modello dati** (DB + frontmatter), oggi sempre valorizzato uguale. Una colonna adesso; una
+   migrazione di ogni tabella e la revisione di **ogni query** dopo. ⚠️ `owner` è **ortogonale** a `domain` e non lo
+   sostituisce: `domain` resta obbligatorio e filtrato ovunque.
+2. **Motore DB**: il default "SQLite+sqlite-vec" di BRIEF-001 era motivato *da utente singolo*. Il criterio cambia.
+   Non lo ribalto per principio — si decide con le misure, aggiungendo al confronto il costo di migrare dopo.
+3. **Tassonomia dei domini come configurazione, non `enum` nel codice.**
+4. **Vincoli legali come criterio eliminatorio** in BRIEF-001: uso commerciale consentito (anche per le licenze dei
+   pesi dei modelli) e disponibilità di un accordo sul trattamento dati, oltre a EU + no-training.
+5. **Segreti con ambito** fin da subito: niente chiavi globali assunte come uniche.
+6. **Registro degli accessi** dal primo giorno: impossibile ricostruirlo a posteriori.
+
+*A doppio senso — restano semplici:* interfaccia, superficie API, provider di identità, billing, topologia di deploy.
+
+**Il requisito "sicura" non aggiunge fasi**, perché è già dentro: D-01 (rootless), D-03 (privilegio minimo per step),
+D-04 (gate al commit), D-07 (backup cifrati). Aggiunge solo il punto 6 qui sopra, e sposta i criteri di BRIEF-001.
+
+**Cosa mi farebbe cambiare idea.** Se il prodotto smettesse di essere un'ipotesi e diventasse una scadenza, la
+conversazione cambia: a quel punto multi-tenancy e identità vanno progettate sul serio, non anticipate di sguincio.
 
 ---
 
@@ -245,10 +277,13 @@ Tre cose, in ordine di quanto bloccano:
 2. **Dove mettere il remote git** (A3): GitHub? GitLab? Serve solo che tu incolli una chiave pubblica.
 3. **L'ok a leggere `/etc/ssh/99-workbrain-lockdown.conf.disabled`** — una singola lettura, per non eseguire P-003 alla cieca.
 
-E una risposta, quando l'avrai, su **D-11**: è l'unica che può cambiare l'architettura invece della configurazione.
+**D-11 è chiusa** (2026-09-06): nessun blocco di policy, l'architettura non cambia. Al suo posto entra **D-12**,
+che non richiede nulla da te adesso — sposta criteri in BRIEF-001 e aggiunge `owner` allo schema, che è ancora BOZZA
+e quindi modificabile a costo zero: non ci sono ancora dati da migrare.
 
 ## 4. Cosa non faccio in questo piano
-- Non tocco **Monarx** (D-11 è una domanda, non un'azione).
+- Non tocco **Monarx**: rischio ora **accettato consapevolmente** (D-11), non ignorato.
+- **Non costruisco un prodotto** (D-12): pago solo le porte a senso unico.
 - Non eseguo **P-003** finché non ho letto il file di lockdown.
 - Non porto backup fuori dalla macchina senza una tua decisione esplicita.
 - Non ottimizzo performance: la macchina è sovradimensionata e non ho misure. Ottimizzare adesso sarebbe

@@ -12,6 +12,9 @@ NON implementi pipeline finché non c'è un piano approvato: in fase bootstrap c
   Step 0.1 di BRIEF-001 eseguito. STT/storage/embedding **non ancora scelti**.
 - Bloccante principale: **campioni di prova mancanti** (serve 1 IT multi-speaker + 1 misto IT/EN — le 5 registrazioni
   esistenti non bastano). Aperti minori: chiave SSH per `ubuntu`, precondizione di P-003. Dettaglio in §10.
+- 2026-09-06: eseguito **AUDIT-001** (infrastruttura + harness) e scritto **PLAN-001** (consolidamento verso
+  piattaforma **containerizzata**) — in BOZZA, attende ok. Decisioni di Raf: dominio del datore di lavoro **resta**
+  nel perimetro; WorkBrain è personale ma con **fondamenta da prodotto** (porte a senso unico sì, prodotto no).
 - Prossimo passo: `plaud audio`/`transcript`/`summary` su una demo per fissare formati reali e baseline errori,
   poi lo Step 0.4 (confronto provider STT) appena ci sono i campioni.
 
