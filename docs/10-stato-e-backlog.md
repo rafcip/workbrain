@@ -31,9 +31,19 @@ Il file aggiornato più spesso. Fonte di verità sullo stato operativo. All'avvi
 ## Piano di consolidamento (2026-09-06)
 - `reports/AUDIT-001-infrastruttura-e-harness.md` — audit eseguito. 3 rilievi 🔴 strutturali (nessun backup/remote,
   gate dei test inerte, hook aggirabili via Bash) + 1 riparato (proprietà del repo).
-- `reports/PLAN-001-consolidamento-infrastruttura.md` — **BOZZA in attesa di ok**. Decisioni D-01…D-12 prese come
-  owner, con alternativa scartata e condizione di cambio idea. Fasi A (sbloccare) → B (guardie vere) → C (fondamenta
-  container) → D (piattaforma). **La Fase C non è eseguibile finché si gira come root.**
+- `reports/PLAN-001-consolidamento-infrastruttura.md` — **APPROVATO da Raf il 2026-09-06** ("dopo fase C ci fermiamo").
+  Decisioni D-01…D-12 prese come owner. Stato di esecuzione:
+  - **Fase A**: A1 ✅ · A4 ✅ · A5 ✅ · A6 ✅ · **A2 rimandata** (migrazione sessione a `ubuntu`, serve handoff) ·
+    **A3 bloccata** (manca la scelta GitHub/GitLab per il remote).
+  - **Fase B**: ✅ **completata**. Gate dei test operativo, hook fail-closed e copertura estesa, hook git `pre-commit`
+    provato end-to-end contro il bypass, backup restic con timer utente e **prova di ripristino riuscita**.
+    Suite da 11 a 23 test. Vedi [[2026-09-06-fase-a-b-guardie-vere-e-backup]].
+  - **Fase C**: da fare, **dopo** la migrazione a `ubuntu` (va installata per quell'utente).
+  - **Fase D**: BRIEF-001 **non è più il piano di riferimento** (vedi sotto). Analisi e piano della piattaforma
+    vanno rifatti da zero.
+- ⚠️ **BRIEF-001 declassato il 2026-09-06 per decisione di Raf** ("non mi fido del brief"): da piano approvato a
+  semplice input da riesaminare. Per la piattaforma si produce un'analisi e un piano nuovi. Restano validi come
+  *fatti misurati* solo gli esiti verificati (es. errori sui termini tecnici di Plaud), non le conclusioni.
 - Decisioni di Raf del 2026-09-06: [[2026-09-06-DECISIONE-perimetro-opentext]] (D-11 chiusa, nessun cambio di
   architettura) e [[2026-09-06-DECISIONE-prodotto-futuro]] (fondamenta da prodotto, prodotto no).
 - Da fare quando PLAN-001 è approvato: aggiungere `owner` a `.claude/rules/schema-kb.md` (frontmatter + colonna DB)
