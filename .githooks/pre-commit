@@ -1,0 +1,54 @@
+#!/usr/bin/env bash
+# GATE VERO di WorkBrain (PLAN-001 D-04).
+#
+# Perche' esiste. Gli hook PreToolUse provano a impedire che segreti e contenuti di dominio riservato
+# FINISCANO in un file. E' una battaglia persa in partenza: AUDIT-001 R-03 ha dimostrato che basta una
+# redirezione con Bash per aggirarli, e la shell offre infiniti altri modi. Inseguire ogni modo di
+# scrivere un file sarebbe "aggiungere un altro check" — il workaround che la regola madre vieta.
+#
+# La regola pero' dice "mai in un COMMIT". E il commit e' un collo di bottiglia UNICO: qualunque strada
+# abbia preso un file — Write, Edit, Bash, un editor, uno script — per entrare in un commit passa di qui.
+# Quindi il controllo sta qui, e qui non si aggira.
+#
+# Attivazione (locale, non versionabile):  git config core.hooksPath .githooks
+# Il test `pre-commit attivo` in tests/test_hooks.sh verifica che sia impostato.
+set -uo pipefail
+
+REPO="$(git rev-parse --show-toplevel 2>/dev/null)" || exit 1
+LIB="$REPO/.claude/hooks/lib/scanners.sh"
+
+# FAIL-CLOSED: senza scanner non si commetta nulla. Il silenzio non e' un permesso.
+if [ ! -r "$LIB" ]; then
+  echo "COMMIT RIFIUTATO: libreria scanner non leggibile ($LIB)." >&2
+  echo "Senza guardia non si committa: ripristinala invece di disattivare l'hook." >&2
+  exit 1
+fi
+# shellcheck source=../.claude/hooks/lib/scanners.sh
+. "$LIB"
+
+rc=0
+while IFS= read -r f; do
+  [ -n "$f" ] || continue
+
+  # Il contenuto IN STAGING, non quello sul disco: e' quello che finirebbe nel commit.
+  content="$(git show ":$f" 2>/dev/null)" || continue
+
+  if ! wb_scan_secrets "$content" "$f"; then
+    echo "   ^ nel file in staging: $f" >&2
+    rc=1
+  fi
+  if ! wb_scan_domain "$content"; then
+    echo "   ^ nel file in staging: $f" >&2
+    rc=1
+  fi
+done < <(git diff --cached --name-only --diff-filter=ACM)
+
+if [ "$rc" -ne 0 ]; then
+  echo >&2
+  echo "COMMIT RIFIUTATO dal gate di WorkBrain." >&2
+  echo "Togli il contenuto dallo staging e sistemalo. I segreti vanno in /srv/workbrain/env.prod;" >&2
+  echo "le note di dominio riservato vivono solo in /srv/workbrain/vault, fuori dal repo." >&2
+  echo "Se e' un falso positivo, si corregge lo scanner in .claude/hooks/lib/scanners.sh," >&2
+  echo "non si aggira l'hook con --no-verify." >&2
+fi
+exit "$rc"

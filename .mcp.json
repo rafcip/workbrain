@@ -2,7 +2,7 @@
   "mcpServers": {
     "plaud": {
       "command": "npx",
-      "args": ["-y", "@plaud-ai/mcp@latest"]
+      "args": ["-y", "@plaud-ai/mcp@0.3.10"]
     }
   }
 }

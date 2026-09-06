@@ -1,14 +1,32 @@
 #!/usr/bin/env bash
-# PreToolUse (Write|Edit|MultiEdit): impedisce di scrivere CONTENUTO di dominio `opentext`
-# (o marker riservati) in docs/, reports/, tests/. La segregazione dei domini e' inviolabile.
-# Nota: il semplice nome "opentext" come parola in prosa e' ammesso (e' un metadato); qui si bloccano
-# solo i MARKER machine-readable che denotano payload reale di quel dominio, che non deve mai stare
-# nel repo (le note vere vivono in /srv/workbrain/vault, fuori dal repo).
-set -euo pipefail
-REPO="/home/ubuntu/workbrain"
+# PreToolUse (Write|Edit|MultiEdit): impedisce di scrivere CONTENUTO del dominio riservato del datore
+# di lavoro (o i suoi marker) in QUALSIASI file del repo. La segregazione dei domini e' inviolabile.
+#
+# Copertura estesa a tutto il repo il 2026-09-06 (AUDIT-001 R-03): prima guardava solo docs/, reports/
+# e tests/, lasciando scoperti knowledge/ (dove finiscono le history), CLAUDE.md e .claude/ — mentre la
+# regola parla di tutto il repo e di ogni commit.
+#
+# Cosa NON blocca: il nome del dominio citato in prosa. Quello e' un metadato ed e' legittimo.
+# Blocca i marker machine-readable, che denotano payload reale. Vedi .claude/hooks/lib/scanners.sh
+set -uo pipefail
+
+REPO="${CLAUDE_PROJECT_DIR:-/home/ubuntu/workbrain}"
+LIB="$REPO/.claude/hooks/lib/scanners.sh"
+
 input="$(cat || true)"
 [ -z "$input" ] && exit 0
-command -v jq >/dev/null || exit 0
+
+# FAIL-CLOSED: vedi block-secrets.sh. Una regola inviolabile non puo' avere un ramo che apre in silenzio.
+if ! command -v jq >/dev/null 2>&1; then
+  echo "BLOCCATO: manca 'jq', la guardia sulla segregazione dei domini non puo' esaminare nulla." >&2
+  exit 2
+fi
+if [ ! -r "$LIB" ]; then
+  echo "BLOCCATO: libreria scanner non leggibile ($LIB)." >&2
+  exit 2
+fi
+# shellcheck source=lib/scanners.sh
+. "$LIB"
 
 fp="$(printf '%s' "$input" | jq -r '.tool_input.file_path // empty')"
 payload="$(printf '%s' "$input" | jq -r '
@@ -17,17 +35,13 @@ payload="$(printf '%s' "$input" | jq -r '
     ( .tool_input.edits // [] | map(.new_string // "") | join("\n") )
   ] | join("\n")')"
 
-# Solo percorsi sensibili del repo
 case "$fp" in
-  "$REPO"/docs/*|"$REPO"/reports/*|"$REPO"/tests/*) : ;;
+  "$REPO"/*) : ;;
   *) exit 0 ;;
 esac
 
-# Marker di payload opentext: assegnazione di dominio nel frontmatter, o sentinella riservata.
-if printf '%s' "$payload" | grep -nEiq '^[[:space:]]*domain:[[:space:]]*["'"'"']?opentext|OPENTEXT-CONFIDENTIAL'; then
-  echo "BLOCCATO: contenuto/marker di dominio 'opentext' in $fp." >&2
-  echo "Segregazione domini inviolabile: le note opentext vivono solo in /srv/workbrain/vault (fuori dal repo)." >&2
-  echo "Se stai solo citando il NOME del dominio in prosa, non usare un frontmatter 'domain: opentext'." >&2
+if ! wb_scan_domain "$payload"; then
+  echo "BLOCCATO: file $fp" >&2
   exit 2
 fi
 exit 0

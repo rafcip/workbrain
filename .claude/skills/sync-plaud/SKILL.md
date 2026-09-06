@@ -15,7 +15,7 @@ Esegui e leggi l'esito reale, poi decidi:
 plaud me                        # sei loggato? (se no: procedura P-004, richiede il tunnel di Raf)
 plaud recent --days 30          # cosa c'è di nuovo nel cloud (id, durata, data)
 ls /srv/workbrain/raw/*/        # cosa è GIÀ stato scaricato (idempotenza: non riscaricare)
-cat /srv/workbrain/env.prod >/dev/null && echo "env presente"
+test -f /srv/workbrain/env.prod && echo "env presente"   # NON fare `cat`: le deny-rule lo rifiutano, ed e' giusto
 ```
 Se `plaud me` fallisce → STOP, non proseguire: manca il login (P-004). Non inventare workaround.
 

@@ -1,38 +1,41 @@
 #!/usr/bin/env bash
-# PostToolUse (Write|Edit|MultiEdit): dopo una modifica a codice in scripts/ o tests/, esegue i test.
-# Gate deterministico (regola #6): niente deploy senza test verdi. In fase bootstrap non c'e' ancora codice:
-# in tal caso esce 0 informando, senza bloccare.
+# PostToolUse (Write|Edit|MultiEdit): dopo una modifica a codice o guardie, ESEGUE i test.
+# Gate deterministico (regola #6): niente deploy senza test verdi.
+#
+# Prima cercava `tests/test_*.py` o `tests/run.sh`, che non esistevano, mentre la suite reale si
+# chiamava `tests/test_hooks.sh`: usciva sempre 0 dicendo "fase bootstrap". Un gate che non puo'
+# fallire non e' un gate (AUDIT-001 R-02). Ora invoca `tests/run.sh`, che raccoglie tutte le suite.
 set -uo pipefail
-REPO="/home/ubuntu/workbrain"
+
+REPO="${CLAUDE_PROJECT_DIR:-/home/ubuntu/workbrain}"
 input="$(cat || true)"
 [ -z "$input" ] && exit 0
-command -v jq >/dev/null || exit 0
+
+if ! command -v jq >/dev/null 2>&1; then
+  echo "run-tests: manca 'jq', impossibile sapere quale file e' stato toccato." >&2
+  exit 2
+fi
 
 fp="$(printf '%s' "$input" | jq -r '.tool_input.file_path // empty')"
+
+# Codice della pipeline, suite di test, e le guardie stesse: toccarle deve far girare i test.
 case "$fp" in
-  "$REPO"/scripts/*|"$REPO"/tests/*) : ;;
+  "$REPO"/scripts/*|"$REPO"/tests/*|"$REPO"/.claude/hooks/*) : ;;
   *) exit 0 ;;
 esac
 
-cd "$REPO" || exit 0
-# Nessun test presente ancora → no-op informativo.
-if ! ls tests/test_*.py >/dev/null 2>&1 && [ ! -f tests/run.sh ]; then
-  echo "run-tests: nessun test in tests/ (fase bootstrap) — nulla da eseguire." >&2
-  exit 0
-fi
-
-if [ -f tests/run.sh ]; then
-  bash tests/run.sh; rc=$?
-elif command -v pytest >/dev/null 2>&1; then
-  pytest -q; rc=$?
-else
-  echo "run-tests: trovati test ma manca il runner (pytest). Installa il runner." >&2
-  exit 0
-fi
-
-if [ "$rc" -ne 0 ]; then
-  echo "run-tests: TEST FALLITI (rc=$rc). Non procedere al deploy finche' non sono verdi (regola #6)." >&2
+if [ ! -f "$REPO/tests/run.sh" ]; then
+  echo "run-tests: BLOCCATO — manca tests/run.sh, quindi il gate non e' operativo." >&2
+  echo "Non si prosegue con un gate cieco (regola #6)." >&2
   exit 2
 fi
-echo "run-tests: test verdi." >&2
+
+out="$(bash "$REPO/tests/run.sh" 2>&1)"; rc=$?
+if [ "$rc" -ne 0 ]; then
+  echo "run-tests: TEST FALLITI (rc=$rc). Non procedere al deploy (regola #6). Output:" >&2
+  printf '%s\n' "$out" | tail -40 >&2
+  exit 2
+fi
+
+printf '%s\n' "$out" | tail -2 >&2
 exit 0
