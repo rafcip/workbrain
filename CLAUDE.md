@@ -15,9 +15,11 @@ NON implementi pipeline finché non c'è un piano approvato: in fase bootstrap c
 - 2026-09-06: eseguito **AUDIT-001** (infrastruttura + harness) e scritto **PLAN-001** (consolidamento verso
   piattaforma **containerizzata**) — in BOZZA, attende ok. Decisioni di Raf: dominio del datore di lavoro **resta**
   nel perimetro; WorkBrain è personale ma con **fondamenta da prodotto** (porte a senso unico sì, prodotto no).
-- PLAN-001 **approvato** ed eseguito: **Fase A** quasi completa (restano A2 migrazione a `ubuntu` e A3 remote git),
-  **Fase B completata** (gate dei test operativo, hook `pre-commit` provato contro il bypass, backup con ripristino
-  verificato; suite 11 → 23 test). Prossimo: **Fase C** (container), poi **stop** per volere di Raf.
+- PLAN-001 **approvato** ed eseguito: **Fasi A e B complete** (remote GitHub privato attivo, SSH in lockdown —
+  solo chiave, gate dei test operativo, hook `pre-commit` provato contro il bypass, backup con ripristino
+  verificato; suite 23 test). Resta **A2**: la sessione deve girare come **`ubuntu`**, non root.
+- **Prossimo: PLAN-001 Fase C** (Docker rootless + timer utente), poi **stop** per volere di Raf.
+  Handoff con stato e comandi di ripresa: `knowledge/history/2026-09-07-HANDOFF-migrazione-a-ubuntu.md`.
 - ⚠️ **BRIEF-001 non è più il piano di riferimento** (decisione di Raf, 2026-09-06): per la piattaforma si rifanno
   analisi e piano da zero. Del brief restano validi solo i fatti misurati, non le conclusioni.
 
