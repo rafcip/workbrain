@@ -9,8 +9,14 @@ Vedi `.claude/rules/continuity.md` §"All'avvio". Esito: conosci stato reale + b
 ## P-002 — Chiusura sessione / handoff
 Vedi `.claude/rules/continuity.md` §"salva sessione". Esito: history aggiornata, stato aggiornato, bloccanti elencati.
 
-## P-003 — Attivare il lockdown SSH (dopo chiave `ubuntu`)
+## P-003 — Attivare il lockdown SSH (dopo chiave `ubuntu`) — **ESEGUITA il 2026-09-07**
+Esito: `passwordauthentication no`, `permitrootlogin without-password`. Verificato con prova attiva
+(`ssh -o PreferredAuthentications=password` → `Permission denied`), non leggendo la config. La console hPanel
+continua a funzionare perché entra come root **via chiave**. Dettagli e rollback:
+[[2026-09-07-remote-github-e-lockdown-ssh]].
 Precondizione: chiave pubblica di Raf in `/home/ubuntu/.ssh/authorized_keys` **testata** da una seconda sessione SSH aperta.
+Precondizione aggiunta il 2026-09-06: **leggere prima** `99-workbrain-lockdown.conf.disabled` e confermare che dica
+`PermitRootLogin prohibit-password` e **non** `no`. Con `no` si perde anche la console di recupero di hPanel.
 1. `sudo sed -i 's/^PasswordAuthentication yes/PasswordAuthentication no/' /etc/ssh/sshd_config.d/50-cloud-init.conf`
 2. `sudo mv /etc/ssh/sshd_config.d/99-workbrain-lockdown.conf.disabled /etc/ssh/sshd_config.d/99-workbrain-lockdown.conf`
 3. `sudo sshd -t && sudo systemctl reload ssh`

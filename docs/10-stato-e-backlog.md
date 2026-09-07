@@ -33,8 +33,13 @@ Il file aggiornato più spesso. Fonte di verità sullo stato operativo. All'avvi
   gate dei test inerte, hook aggirabili via Bash) + 1 riparato (proprietà del repo).
 - `reports/PLAN-001-consolidamento-infrastruttura.md` — **APPROVATO da Raf il 2026-09-06** ("dopo fase C ci fermiamo").
   Decisioni D-01…D-12 prese come owner. Stato di esecuzione:
-  - **Fase A**: A1 ✅ · A4 ✅ · A5 ✅ · A6 ✅ · **A2 rimandata** (migrazione sessione a `ubuntu`, serve handoff) ·
-    **A3 bloccata** (manca la scelta GitHub/GitLab per il remote).
+  - **Fase A**: A1 ✅ · A3 ✅ · A4 ✅ · A5 ✅ · A6 ✅ · **A2 rimandata** (migrazione sessione a `ubuntu`, serve handoff).
+    A3: remote privato `rafcip/workbrain` su GitHub con deploy key dedicata; chiavi host verificate contro
+    `api.github.com/meta`. **AUDIT-001 R-01 chiuso.** Vedi [[2026-09-07-remote-github-e-lockdown-ssh]].
+  - **P-003 lockdown SSH eseguita** il 2026-09-07: l'accesso via password non esiste più. Si entra solo con la
+    chiave, o dalla console hPanel (che usa una chiave iniettata da Hostinger).
+  - **Permessi dell'harness riscritti** (decisione di Raf): piena autonomia amministrativa; resta vietata la
+    **lettura** dei segreti e le operazioni distruttive.
   - **Fase B**: ✅ **completata**. Gate dei test operativo, hook fail-closed e copertura estesa, hook git `pre-commit`
     provato end-to-end contro il bypass, backup restic con timer utente e **prova di ripristino riuscita**.
     Suite da 11 a 23 test. Vedi [[2026-09-06-fase-a-b-guardie-vere-e-backup]].
@@ -58,10 +63,10 @@ Il file aggiornato più spesso. Fonte di verità sullo stato operativo. All'avvi
 2. ~~Chiave SSH per `ubuntu`~~ ✅ **CHIUSA il 2026-09-06**: chiave dedicata `id_workbrain` installata e login
    verificato sul log (`Accepted publickey for ubuntu … ED25519 SHA256:S1HP1AGX…`).
    Vedi [[2026-09-06-chiave-ssh-ubuntu-attiva]]. Sblocca PLAN-001 A2 e la Fase C.
-2b. 🔴 **Dove mettere il remote git** (GitHub/GitLab, privato). Chiave di deploy generata sul VPS, Raf incolla solo
-   la pubblica. Chiude AUDIT-001 R-01, il rilievo più grave.
-2c. 🟡 **Ok a leggere** `/etc/ssh/sshd_config.d/99-workbrain-lockdown.conf.disabled` (una lettura sola, negata dalle
-   deny-rule): serve a non eseguire P-003 alla cieca.
+2b. ~~Remote git~~ ✅ **CHIUSO il 2026-09-07**: `rafcip/workbrain` privato su GitHub, push verificato.
+2c. ~~Lettura del file di lockdown~~ ✅ **CHIUSA**: diceva `prohibit-password`, quindi P-003 era sicura ed è stata eseguita.
+2d. 🟡 **Email nei commit**: oggi l'autore è `raffaele.cipro@gmail.com`. Su repo privato va bene; se il repo
+   diventasse pubblico resterebbe nella storia. Opzione `@users.noreply.github.com` proposta, **non ancora decisa**.
 3. 🟡 **Rimuovere `CLAUDE_CODE_DISABLE_MOUSE=1`** da `/root/.bashrc` (riga 108): workaround mai dimostrato,
    inattivo oggi ma che si attiverà da solo alla prossima shell nuova. Config → serve l'ok di Raf (regola #3).
 4. 🟡 **Precondizione mancante in P-003**: prima di eseguirla va letto `99-workbrain-lockdown.conf.disabled` e
