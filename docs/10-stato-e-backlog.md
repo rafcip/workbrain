@@ -1,13 +1,23 @@
 # 10 — Stato e backlog
 
-Ultimo aggiornamento: 2026-09-05 (sera — login Plaud completato)
+Ultimo aggiornamento: 2026-09-07 (sera — PLAN-001 Fase C completata: container rootless e timer utente)
 
 Il file aggiornato più spesso. Fonte di verità sullo stato operativo. All'avvio di ogni sessione si legge questo
 (vedi `.claude/rules/continuity.md`).
 
 ## Stato operativo
-- **Fase**: bootstrap dell'harness completato e **rivisto (verdetto GO del reviewer)**. Nessuna pipeline in esecuzione. Nessun servizio systemd WorkBrain attivo.
-- Hook verificati con suite committata `tests/test_hooks.sh` (11/11 verdi, riverificati 2026-09-05 sera).
+- **Fase**: **PLAN-001 completato fino alla Fase C compresa** — qui ci si ferma per volere di Raf. L'harness ha
+  guardie vere, backup, remote e ora fondamenta container. Nessuna pipeline in esecuzione: gli step di
+  `compose.yaml` sono segnaposto.
+- Suite: **106 verdi, 0 falliti** (`bash tests/run.sh`) = 23 hook + 83 invarianti di Fase C, questi ultimi letti
+  dalla configurazione **effettiva** (non dalle righe dei file) e provati per mutazione, comprese quelle
+  **additive**: un servizio ostile aggiunto a `compose.yaml` fa fallire 9 test.
+- Il **`pre-commit` ora esegue la suite** oltre agli scanner, ed è fail-closed: suite rossa o assente → commit
+  rifiutato. È un cambio di comportamento del gate, introdotto per chiudere un bloccante del reviewer.
+- **Sessione come `ubuntu`** (A2 chiusa): mai più root. Prima sessione non-root il 2026-09-07.
+- **Container**: Docker **rootless** sotto `ubuntu`, daemon rootful spento, `ubuntu` fuori dal gruppo `docker`.
+  Tre timer utente attivi: backup, prune di Docker, e `workbrain-step@index` come canary del runtime.
+  Dettaglio e prove: [[2026-09-07-fase-c-container-rootless]].
 - **VPS**: in ordine (utente `ubuntu`, UFW+fail2ban attivi, tool e CLI installati). Dettaglio: `docs/05-infrastruttura-vps.md`.
 - ✅ **`plaud login` completato** (2026-09-05 sera, P-004). Token in `/home/ubuntu/.plaud/`, `plaud me` risponde
   con l'identità corretta. **BRIEF-001 Step 0 è ora eseguibile.**
@@ -43,7 +53,21 @@ Il file aggiornato più spesso. Fonte di verità sullo stato operativo. All'avvi
   - **Fase B**: ✅ **completata**. Gate dei test operativo, hook fail-closed e copertura estesa, hook git `pre-commit`
     provato end-to-end contro il bypass, backup restic con timer utente e **prova di ripristino riuscita**.
     Suite da 11 a 23 test. Vedi [[2026-09-06-fase-a-b-guardie-vere-e-backup]].
-  - **Fase C**: da fare, **dopo** la migrazione a `ubuntu` (va installata per quell'utente).
+  - **Fase C**: ✅ **completata il 2026-09-07** (C1-C4). Docker rootless per `ubuntu`; daemon rootful e cron di
+    prune spenti; `Dockerfile` pinnato per digest con `USER 10001:0`; `compose.yaml` che applica la matrice dei
+    permessi di D-03 (mount **e** rete provati per ogni step); template `workbrain-step@.service`/`.timer` con timer verificato
+    "in volo". L'attrito temuto su AppArmor **non si è presentato**: il fallback di D-01 non è servito.
+    Difetto trovato e corretto lungo la strada: `RuntimeMaxSec=` è ignorato con `Type=oneshot` — il guard-rail
+    anti-hang del backup (Fase B) era dichiarato ma inesistente. Ora è `TimeoutStartSec=`, con test.
+    Le unit systemd sono state portate **nel repo** (`systemd/user/`, symlink dalle unit attive): prima erano
+    fuori dal versionamento e fuori dal backup. Fa eccezione `docker.service` utente, rimasto fuori: è
+    rigenerabile con `dockerd-rootless-setuptool.sh install`.
+  - **Review indipendente: NO-GO iniziale, 4 bloccanti, tutti chiusi prima del commit.** Il prune notturno
+    avrebbe cancellato l'immagine del progetto entro 48 h trasformando il canary in una build giornaliera (B1);
+    lo step `query` aveva Internet piena dove D-03 dice "solo loopback", ed è quello che vede tutti i domini (B2);
+    i test dei confini erano `grep` sui file e non rilevavano un servizio ostile aggiunto — PAT-07 commesso nella
+    stessa sessione in cui è stato registrato (B3); il gate non eseguiva mai quei test sui file che proteggono (B4).
+    Dettaglio e prove in [[2026-09-07-fase-c-container-rootless]].
   - **Fase D**: BRIEF-001 **non è più il piano di riferimento** (vedi sotto). Analisi e piano della piattaforma
     vanno rifatti da zero.
 - ⚠️ **BRIEF-001 declassato il 2026-09-06 per decisione di Raf** ("non mi fido del brief"): da piano approvato a
@@ -67,6 +91,9 @@ Il file aggiornato più spesso. Fonte di verità sullo stato operativo. All'avvi
 2c. ~~Lettura del file di lockdown~~ ✅ **CHIUSA**: diceva `prohibit-password`, quindi P-003 era sicura ed è stata eseguita.
 2d. 🟡 **Email nei commit**: oggi l'autore è `raffaele.cipro@gmail.com`. Su repo privato va bene; se il repo
    diventasse pubblico resterebbe nella storia. Opzione `@users.noreply.github.com` proposta, **non ancora decisa**.
+2e. 🟡 **Riavvio di prova del VPS non fatto.** Che daemon rootless e timer utente ripartano da soli dopo un
+   reboot è sostenuto dall'evidenza strutturale (`Linger=yes`, unit `enabled` nei `.wants` — è esattamente ciò
+   che systemd legge all'avvio), **non** da un riavvio vero. Il riavvio interrompe la sessione: serve l'ok di Raf.
 3. 🟡 **Rimuovere `CLAUDE_CODE_DISABLE_MOUSE=1`** da `/root/.bashrc` (riga 108): workaround mai dimostrato,
    inattivo oggi ma che si attiverà da solo alla prossima shell nuova. Config → serve l'ok di Raf (regola #3).
 4. 🟡 **Precondizione mancante in P-003**: prima di eseguirla va letto `99-workbrain-lockdown.conf.disabled` e
@@ -76,7 +103,18 @@ Il file aggiornato più spesso. Fonte di verità sullo stato operativo. All'avvi
 5. 🟡 Conferma dei **domini** e delle regole di segregazione come codificate in `.claude/rules/domini-riservatezza.md`.
 
 ## Tech debt / rischi noti
-- Sessione di bootstrap girata come root (mitigato: file assegnati a `ubuntu`; sessioni future come `ubuntu`).
+- ~~Sessione girata come root~~ ✅ risolto: dal 2026-09-07 le sessioni girano come `ubuntu`.
+- Gli step di `compose.yaml` sono **segnaposto** che stampano il proprio perimetro: i confini sono veri, il
+  contenuto no. Vanno riempiti dal piano nuovo della piattaforma, non prima.
+- Il `Dockerfile` sceglie Python come base: è una **comodità dello scheletro**, non una decisione di piattaforma.
+  Cambiare la riga `FROM` è l'intero costo di cambiare idea.
+- **Vincolo per la Fase D**: `umask 002` non basta. Codice che fissa i permessi in modo esplicito
+  (`mkstemp` → 0600, writer atomici, `os.chmod`) produce file di proprietà host `110000` che `ubuntu` **non può
+  modificare né chown-are**. Sul `vault/`, che Raf apre con Obsidian, è il danno peggiore.
+- Le unit systemd sono **symlink al working tree**: `git checkout`/`stash`/cambio di branch cambiano la
+  configurazione systemd viva senza `daemon-reload`.
+- 🟡 `block-bash-writes.sh` dà **falsi positivi** sui comandi di sola lettura che contengono un pattern-segreto e
+  un `2>/dev/null`: ostacola proprio i comandi di audit. Pre-esistente.
 - `env.prod` è un **template senza valori**: le chiavi provider vanno inserite dopo BRIEF-001.
 - Schema KB e scelta motore DB sono **BOZZA**: si consolidano in F3/F4.
 
@@ -85,4 +123,6 @@ Il file aggiornato più spesso. Fonte di verità sullo stato operativo. All'avvi
 
 ## Timeline / fasi del piano (dettaglio in BRIEF-001)
 - **F1** sync audio · **F2** STT+diarizzazione · **F3** distill+vault · **F4** DB+query MCP · **F5** digest+azioni · **F6** hardening+backup.
-- Oggi: pre-F1 (harness pronto, provider da scegliere).
+  ⚠️ Questa timeline viene da BRIEF-001, che è **declassato**: va riesaminata nel piano nuovo, non ereditata.
+- Oggi: **pre-F1**. L'infrastruttura è pronta e ferma; il prossimo lavoro è **analisi e piano nuovi della
+  piattaforma**, che Raf ha chiesto di rifare da zero. Restano bloccanti i campioni di prova (punto 1).

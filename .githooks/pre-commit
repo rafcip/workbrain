@@ -43,6 +43,26 @@ while IFS= read -r f; do
   fi
 done < <(git diff --cached --name-only --diff-filter=ACM)
 
+# --- Gate deterministico: i test, non solo gli scanner (regola #6) ---------------------------
+# Gli scanner sopra guardano il CONTENUTO in staging. Non guardano se il lavoro funziona.
+# L'hook PreToolUse esegue la suite quando si scrive un file, ma e' aggirabile con Bash (R-03):
+# il commit resta l'unico collo di bottiglia. Senza questo blocco si poteva cambiare compose.yaml
+# o una unit systemd e committare con la suite mai eseguita.
+# FAIL-CLOSED anche qui: se la suite non gira, non si committa. Si sistema la macchina, non si usa
+# --no-verify.
+if [ "$rc" -eq 0 ]; then
+  if [ ! -x "$REPO/tests/run.sh" ] && [ ! -r "$REPO/tests/run.sh" ]; then
+    echo "COMMIT RIFIUTATO: manca tests/run.sh, il gate sarebbe cieco." >&2
+    rc=1
+  elif ! out="$(cd "$REPO" && bash tests/run.sh 2>&1)"; then
+    printf '%s\n' "$out" >&2
+    echo >&2
+    echo "COMMIT RIFIUTATO: la suite di test e' ROSSA." >&2
+    echo "Un test rosso e' un'informazione, non un ostacolo: si sistema la causa." >&2
+    rc=1
+  fi
+fi
+
 if [ "$rc" -ne 0 ]; then
   echo >&2
   echo "COMMIT RIFIUTATO dal gate di WorkBrain." >&2

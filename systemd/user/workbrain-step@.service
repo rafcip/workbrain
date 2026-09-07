@@ -1,0 +1,21 @@
+[Unit]
+Description=WorkBrain - step di pipeline "%i" (container one-shot)
+Documentation=file:///home/ubuntu/workbrain/reports/PLAN-001-consolidamento-infrastruttura.md
+# Il daemon rootless deve esserci. Requires (non Requisite) perche' dopo un reboot un timer con
+# Persistent=true puo' scattare in recupero PRIMA che il gestore utente abbia avviato il daemon:
+# con Requisite lo step fallirebbe invece di aspettare, e After ordina ma non attiva niente.
+Requires=docker.service
+After=docker.service
+
+[Service]
+Type=oneshot
+WorkingDirectory=/home/ubuntu/workbrain
+# Il daemon e' quello dell'utente: %t e' /run/user/1000. Senza, il CLI cerca il socket
+# rootful di sistema, che in Fase C2 e' stato spento apposta.
+Environment=DOCKER_HOST=unix://%t/docker.sock
+# -T: sotto systemd non c'e' terminale; senza, compose puo' rifiutarsi di allocare un pty.
+# --rm: uno step one-shot non lascia container morti in giro.
+ExecStart=/usr/bin/docker compose run --rm -T --quiet-pull %i
+# Con Type=oneshot il limite di durata e' TimeoutStartSec: RuntimeMaxSec viene ignorato.
+TimeoutStartSec=3600
+Nice=10

@@ -1,0 +1,16 @@
+[Unit]
+Description=WorkBrain - pianificazione dello step "%i"
+# Nota: questo e' il template. La cadenza vera di ogni step si fissa con un drop-in
+# per istanza (es. ~/.config/systemd/user/workbrain-step@sync.timer.d/override.conf),
+# perche' step diversi hanno ritmi diversi e non ha senso imporne uno solo qui.
+
+[Timer]
+OnCalendar=daily
+# Se la macchina era spenta all'orario previsto, il job recupera: e' il motivo per cui
+# si usano i timer systemd e non cron (PLAN-001 D-02).
+Persistent=true
+RandomizedDelaySec=900
+Unit=workbrain-step@%i.service
+
+[Install]
+WantedBy=timers.target

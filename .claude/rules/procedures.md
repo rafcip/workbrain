@@ -41,3 +41,15 @@ Prima di toccare un file critico: `cp <file> <file>.bak-pre-<feature>-$(date +%F
 
 ## P-006 — Aggiungere una nuova procedura
 Assegna il prossimo `P-NNN` libero, scrivi precondizioni + passi verificabili + esito atteso, linka dalla history che l'ha motivata.
+
+## P-007 — Installare o riarmare le unit systemd utente
+Precondizione: girare come `ubuntu` (mai root: sono unit **utente**) e avere `Linger=yes`
+(`loginctl show-user ubuntu`). Le unit versionate stanno in `systemd/user/`; quelle attive sono symlink.
+1. `bash scripts/install-units.sh` — crea/rinfresca i symlink in `~/.config/systemd/user/` e fa il `daemon-reload`.
+   È idempotente e **non arma niente**: quali timer accendere è una decisione operativa, non un effetto collaterale.
+2. Armare i timer voluti: `systemctl --user enable --now workbrain-backup.timer` (idem per
+   `workbrain-docker-prune.timer` e le istanze `workbrain-step@<step>.timer`).
+3. Verifica: `systemctl --user list-timers` mostra i timer con `NEXT` valorizzato, e
+   `bash tests/run.sh` resta verde (un test controlla che l'unit attiva sia il symlink al repo).
+⚠️ Con `Type=oneshot` il limite di durata è `TimeoutStartSec=`: `RuntimeMaxSec=` viene **ignorato** da systemd.
+Motivata da [[2026-09-07-fase-c-container-rootless]].

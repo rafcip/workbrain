@@ -1,0 +1,12 @@
+[Unit]
+Description=WorkBrain - backup restic di /srv/workbrain
+Documentation=file:///home/ubuntu/workbrain/reports/PLAN-001-consolidamento-infrastruttura.md
+
+[Service]
+Type=oneshot
+ExecStart=/usr/bin/bash /home/ubuntu/workbrain/scripts/backup.sh
+# Un backup appeso e' peggio di un backup mancante: non deve restare in esecuzione all'infinito.
+# Con Type=oneshot il limite e' TimeoutStartSec: RuntimeMaxSec viene ignorato da systemd.
+TimeoutStartSec=3600
+Nice=10
+IOSchedulingClass=idle

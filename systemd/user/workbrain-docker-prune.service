@@ -1,0 +1,14 @@
+[Unit]
+Description=WorkBrain - pulizia del daemon Docker rootless
+Documentation=file:///home/ubuntu/workbrain/reports/PLAN-001-consolidamento-infrastruttura.md
+# Senza daemon non c'e' niente da potare: non fallire, non partire proprio.
+Requisite=docker.service
+After=docker.service
+
+[Service]
+Type=oneshot
+Environment=DOCKER_HOST=unix://%t/docker.sock
+ExecStart=/usr/bin/bash /home/ubuntu/workbrain/scripts/docker-prune.sh
+TimeoutStartSec=600
+Nice=10
+IOSchedulingClass=idle

@@ -1,0 +1,88 @@
+# Scheletro dei confini della pipeline WorkBrain. PLAN-001 D-03 / Fase C3.
+#
+# COSA C'E' QUI DAVVERO: la *matrice dei permessi* della tabella D-03, scritta in una forma che
+# la macchina applica invece di lasciarla in un documento. Chi parla con Internet non e' chi puo'
+# scrivere nel vault; chi indicizza non puo' toccare gli audio originali.
+#
+# COSA NON C'E': il codice degli step. I `command` sono segnaposto che stampano il proprio
+# perimetro ed escono. Servono a rendere i confini verificabili OGGI, prima che esista la
+# pipeline, cosi' che il piano nuovo della piattaforma (Fase D) erediti vincoli gia' provati
+# invece di doverli reinventare.
+#
+# NON e' un'app long-running: nessun `depends_on` a catena, nessun servizio che resta su.
+# Ogni step e' one-shot e viene lanciato da un timer utente systemd (D-02), non da `compose up`.
+# `docker compose run --rm <step>` e' il modo di eseguirne uno a mano.
+#
+# La segregazione dei domini resta CODICE (colonna `domain` filtrata in ogni query,
+# .claude/rules/domini-riservatezza.md). Questa e' una seconda linea, non un sostituto.
+
+x-workbrain-base: &workbrain-base
+  image: workbrain-base:dev
+  build:
+    context: .
+    dockerfile: Dockerfile
+  # uid non-root dentro il namespace, gid 0 = gruppo `ubuntu` sull'host (spiegazione nel Dockerfile).
+  user: "10001:0"
+  read_only: true                 # il rootfs non e' un posto dove scrivere: i dati stanno nei mount
+  tmpfs:
+    - /tmp:rw,noexec,nosuid,size=256m
+  cap_drop: [ALL]                 # nessuno step ha bisogno di capability: si parte da zero
+  security_opt:
+    - no-new-privileges:true
+  restart: "no"                   # uno step one-shot che riparte da solo e' un loop, non una pipeline
+  pull_policy: never              # l'immagine si costruisce qui: nessuno step deve scaricare da un registry
+  init: true                      # raccoglie gli zombie: senza, un container che biforca lascia processi
+  environment:
+    TZ: Europe/Rome
+  logging:                        # i log vanno in journal via systemd, non gonfiano il disco qui
+    driver: json-file
+    options: { max-size: "10m", max-file: "3" }
+
+services:
+
+  # Plaud -> raw/. Unico step che parla con il cloud Plaud; non vede ne' vault ne' db.
+  sync:
+    <<: *workbrain-base
+    volumes:
+      - /srv/workbrain/raw:/srv/workbrain/raw:rw
+    command: ["python3", "-c", "print('step sync — raw:rw, vault:-, db:- , rete: uscita verso Plaud')"]
+
+  # STT + correzione con glossario. Scrive gli artefatti accanto all'audio, non altrove.
+  stt:
+    <<: *workbrain-base
+    volumes:
+      - /srv/workbrain/raw:/srv/workbrain/raw:rw
+    command: ["python3", "-c", "print('step stt — raw:rw, vault:-, db:- , rete: uscita verso provider STT')"]
+
+  # Distillazione -> vault markdown. Legge gli audio in SOLA LETTURA: e' il passo che parla
+  # con un LLM, e non deve poter alterare l'evidenza da cui e' partito (raw/ e' immutabile).
+  distill:
+    <<: *workbrain-base
+    volumes:
+      - /srv/workbrain/raw:/srv/workbrain/raw:ro
+      - /srv/workbrain/vault:/srv/workbrain/vault:rw
+    command: ["python3", "-c", "print('step distill — raw:ro, vault:rw, db:- , rete: uscita verso LLM')"]
+
+  # Indicizzazione -> DB SSOT. Nessuna rete: non ha niente da chiedere a nessuno.
+  index:
+    <<: *workbrain-base
+    network_mode: none
+    volumes:
+      - /srv/workbrain/vault:/srv/workbrain/vault:ro
+      - /srv/workbrain/db:/srv/workbrain/db:rw
+    command: ["python3", "-c", "print('step index — raw:-, vault:ro, db:rw, rete: nessuna')"]
+
+  # Query / MCP. Sola lettura ovunque, e senza rete esterna.
+  # `network_mode: none` lascia solo l'interfaccia di loopback: e' letteralmente la riga "solo
+  # loopback" di D-03. Senza, lo step ereditava la rete di default di compose e usciva su Internet —
+  # ed e' l'unico step che monta CONTEMPORANEAMENTE vault/ e db/, cioe' vede tutti i domini, PII
+  # dello studio comprese. Era il buco con le conseguenze peggiori di tutta la matrice.
+  # Quando servira' esporre MCP, si passa da un socket montato o da una rete interna di compose,
+  # mai da una porta pubblicata su 0.0.0.0.
+  query:
+    <<: *workbrain-base
+    network_mode: none
+    volumes:
+      - /srv/workbrain/vault:/srv/workbrain/vault:ro
+      - /srv/workbrain/db:/srv/workbrain/db:ro
+    command: ["python3", "-c", "print('step query — raw:-, vault:ro, db:ro, rete: solo loopback')"]

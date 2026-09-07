@@ -1,0 +1,12 @@
+[Unit]
+Description=WorkBrain - backup giornaliero
+
+[Timer]
+OnCalendar=daily
+# Recupera l'esecuzione se la macchina era spenta all'orario previsto: e' il motivo per cui
+# si usa un timer systemd e non cron (PLAN-001 D-02).
+Persistent=true
+RandomizedDelaySec=1800
+
+[Install]
+WantedBy=timers.target

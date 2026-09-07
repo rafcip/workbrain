@@ -18,9 +18,14 @@ fi
 
 fp="$(printf '%s' "$input" | jq -r '.tool_input.file_path // empty')"
 
-# Codice della pipeline, suite di test, e le guardie stesse: toccarle deve far girare i test.
+# Codice della pipeline, suite di test, guardie, e gli artefatti dei container: toccarli deve far
+# girare i test. La Fase C ha aggiunto Dockerfile/compose/systemd senza estendere questo elenco:
+# 23 invarianti nuove esistevano ma non venivano mai eseguite quando si toccavano i file che
+# proteggono. E' la stessa famiglia di R-02 — un gate che non si attiva non e' un gate.
 case "$fp" in
   "$REPO"/scripts/*|"$REPO"/tests/*|"$REPO"/.claude/hooks/*) : ;;
+  "$REPO"/Dockerfile|"$REPO"/.dockerignore|"$REPO"/compose.yaml) : ;;
+  "$REPO"/docker/*|"$REPO"/systemd/*|"$REPO"/.githooks/*) : ;;
   *) exit 0 ;;
 esac
 

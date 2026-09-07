@@ -11,15 +11,20 @@ NON implementi pipeline finché non c'è un piano approvato: in fase bootstrap c
 - 2026-09-05 (sera): harness in piedi, VPS in ordine. ✅ **`plaud login` fatto** (token in `/home/ubuntu/.plaud/`),
   Step 0.1 di BRIEF-001 eseguito. STT/storage/embedding **non ancora scelti**.
 - Bloccante principale: **campioni di prova mancanti** (serve 1 IT multi-speaker + 1 misto IT/EN — le 5 registrazioni
-  esistenti non bastano). Aperti minori: chiave SSH per `ubuntu`, precondizione di P-003. Dettaglio in §10.
+  esistenti non bastano): è un'azione di Raf. Dettaglio in `docs/10-stato-e-backlog.md`.
 - 2026-09-06: eseguito **AUDIT-001** (infrastruttura + harness) e scritto **PLAN-001** (consolidamento verso
   piattaforma **containerizzata**) — in BOZZA, attende ok. Decisioni di Raf: dominio del datore di lavoro **resta**
   nel perimetro; WorkBrain è personale ma con **fondamenta da prodotto** (porte a senso unico sì, prodotto no).
-- PLAN-001 **approvato** ed eseguito: **Fasi A e B complete** (remote GitHub privato attivo, SSH in lockdown —
-  solo chiave, gate dei test operativo, hook `pre-commit` provato contro il bypass, backup con ripristino
-  verificato; suite 23 test). Resta **A2**: la sessione deve girare come **`ubuntu`**, non root.
-- **Prossimo: PLAN-001 Fase C** (Docker rootless + timer utente), poi **stop** per volere di Raf.
-  Handoff con stato e comandi di ripresa: `knowledge/history/2026-09-07-HANDOFF-migrazione-a-ubuntu.md`.
+- PLAN-001 **approvato** ed eseguito: **Fasi A, B e C complete**. Remote GitHub privato, SSH in lockdown (solo
+  chiave), gate dei test operativo, hook `pre-commit` provato contro il bypass, backup con ripristino verificato.
+- 2026-09-07 (sera): **A2 chiusa** — le sessioni girano come **`ubuntu`**, non più root — e **Fase C completata**:
+  Docker **rootless** sotto `ubuntu` (daemon rootful spento, `ubuntu` fuori dal gruppo `docker`), immagine base
+  pinnata per digest con utente non-root, `compose.yaml` che applica la matrice di D-03 (mount **e** rete provati
+  per ogni step), template `workbrain-step@` con timer utente verificato in volo. Unit systemd nel repo
+  (`systemd/user/`, con symlink). Review indipendente: NO-GO iniziale con 4 bloccanti, **tutti chiusi prima del
+  commit**. Il `pre-commit` ora esegue anche la suite. **106 verdi**. Vedi [[2026-09-07-fase-c-container-rootless]].
+- **Qui PLAN-001 finisce e ci si ferma** (volere di Raf). Il prossimo lavoro è **analisi e piano nuovi della
+  piattaforma**, da rifare da zero — non l'implementazione.
 - ⚠️ **BRIEF-001 non è più il piano di riferimento** (decisione di Raf, 2026-09-06): per la piattaforma si rifanno
   analisi e piano da zero. Del brief restano validi solo i fatti misurati, non le conclusioni.
 
@@ -52,9 +57,11 @@ In dubbio di classificazione → `inbox` + notifica a Raf. Mai forzare un domini
 - `CLAUDE.md` — questo file (identità, stato, regole brevi). `.claude/rules/` — una regola per tema.
 - `.claude/agents/` — subagent a contesto pulito (ricercatore-sota, reviewer, curatore-kb).
 - `.claude/skills/` — procedure riusabili (pattern SOTA con counter-example). `.claude/hooks/` — guardie deterministiche.
+- `Dockerfile` + `compose.yaml` + `docker/` — fondamenta container (Fase C): confini per step, non pipeline.
+  `systemd/user/` — unit e timer utente (sorgente unica; le unit attive sono symlink a queste).
 - `.mcp.json` — Plaud MCP (poi MCP WorkBrain). `docs/` — documenti numerati. `knowledge/history/` — ogni fix/decisione datata.
 - `knowledge/platform/` — comportamenti non documentati. `reports/` — analisi e brief (i report vivono in **file**, non in chat).
-- `scripts/`, `tests/` — vuoti finché non c'è un piano approvato.
+- `scripts/` — utilità operative (backup, prune, installazione unit). `tests/` — suite raccolte da `tests/run.sh`.
 
 ## Dove trovare la verità
 | Domanda | File |
@@ -63,8 +70,9 @@ In dubbio di classificazione → `inbox` + notifica a Raf. Mai forzare un domini
 | Stato operativo, backlog, canary | `docs/10-stato-e-backlog.md` |
 | Cosa eredito da Legal Agency | `docs/00-lineage-legal-agency.md` |
 | Architettura target (BOZZA) | `docs/02-architettura-target.md` |
-| Prossima sessione / scelta provider | `reports/BRIEF-001-analisi-soluzione.md` |
-| Setup del VPS | `docs/05-infrastruttura-vps.md` |
+| Piano eseguito (Fasi A/B/C) | `reports/PLAN-001-consolidamento-infrastruttura.md` |
+| Input declassato, solo fatti misurati | `reports/BRIEF-001-analisi-soluzione.md` |
+| Setup del VPS, container, timer | `docs/05-infrastruttura-vps.md` |
 | Procedure numerate (P-series) | `.claude/rules/procedures.md` |
 | Bug noti e pattern risolti | `.claude/rules/bug-registry.md` |
 | Schema KB / frontmatter | `.claude/rules/schema-kb.md` |

@@ -19,9 +19,40 @@ Stato reale del VPS che ospita WorkBrain, verificato con comandi. Ogni voce ripo
   `monarx-update`. È un agente di un fornitore con accesso al filesystem, su una macchina che ospiterà PII di
   clienti dello studio e materiale riservato. Decisione di riservatezza aperta verso Raf (AUDIT-001 R-06).
   ⚠️ Rimuoverlo potrebbe violare le condizioni dell'hosting: verificare **prima**.
-- **`docker.service` + `containerd.service`** attivi ma **a vuoto**: 0 container, 0 immagini. Gruppo `docker` vuoto.
-  Più i cron `docker-builder-prune` e `docker-image-prune`. Proposta aperta: spegnerli (AUDIT-001 R-05).
+- ~~**`docker.service` + `containerd.service`** preinstallati dal provider~~ ✅ **spenti il 2026-09-07**
+  (PLAN-001 Fase C2, AUDIT-001 R-05 chiuso): erano attivi ma a vuoto (0 container, 0 immagini, 0 volumi —
+  verificato prima di spegnere). Ora `disabled` + `inactive`, sostituiti dal runtime rootless di `ubuntu`.
+  I due cron `docker-builder-prune` e `docker-image-prune` sono stati rimossi (copia in
+  `/srv/workbrain/backups/etc-cron.d/`) e sostituiti dal timer utente `workbrain-docker-prune.timer`.
 - `qemu-guest-agent` (normale su VM), `sysstat` (raccolta metriche).
+
+## Container: Docker rootless sotto `ubuntu` (dal 2026-09-07)
+Runtime della piattaforma. Dettaglio e prove: [[2026-09-07-fase-c-container-rootless]] · PLAN-001 D-01/D-02/D-03.
+- `dockerd` e `containerd` girano **come `ubuntu`**, non come root. Socket `/run/user/1000/docker.sock`,
+  root dir `~/.local/share/docker`, storage driver `overlayfs` nativo. Context CLI `rootless` (default).
+- `ubuntu` **non** è nel gruppo `docker` e non deve entrarci: equivarrebbe a dargli root e annullerebbe D-01.
+- Abilitato da `dockerd-rootless-setuptool.sh` + pacchetto `uidmap`. La restrizione AppArmor di 24.04
+  (`kernel.apparmor_restrict_unprivileged_userns=1`) **non** ha dato problemi: esiste già
+  `/etc/apparmor.d/rootlesskit` con `userns`.
+- Mappatura degli id (serve saperla per i bind mount): `0 → 1000` (`ubuntu`), `N>0 → 100000+N-1`.
+  Perciò i container girano `10001:0` — non-root dentro, gruppo `ubuntu` fuori — e `/srv/workbrain/{raw,vault,db}`
+  sono `2770` (setgid + scrittura di gruppo). Senza questo un container non-root non scrive nei dati.
+- Il daemon rootless parte al boot grazie a `docker.service` (utente) + `Linger=yes`.
+
+## Timer utente di WorkBrain
+Le unit stanno in `~/workbrain/systemd/user/` e in `~/.config/systemd/user/` ci sono **symlink**
+(`bash scripts/install-units.sh` li rifà, idempotente).
+| unit | cosa fa | cadenza |
+|---|---|---|
+| `workbrain-backup.timer` | backup restic di `/srv/workbrain` | giornaliero, `Persistent=true` |
+| `workbrain-docker-prune.timer` | pulizia immagini/cache del daemon rootless | giornaliero |
+| `workbrain-step@<step>.timer` | template: uno step di pipeline in un container one-shot | per istanza |
+⚠️ Con `Type=oneshot` il limite di durata è **`TimeoutStartSec=`**: `RuntimeMaxSec=` viene ignorato da systemd
+(difetto trovato e corretto nel servizio di backup il 2026-09-07). Un test lo impedisce.
+⚠️ Il prune **non deve** toccare l'immagine del progetto. `docker image prune -a` cancella ogni immagine taggata
+non referenziata, e con step tutti `--rm` nessuna immagine lo è mai: senza protezione `workbrain-base` sparirebbe
+dopo 24 h. Perciò il `Dockerfile` dichiara `LABEL com.workbrain.keep="true"` e `scripts/docker-prune.sh` esclude
+quella label. Le due parti devono restare allineate — un test lo verifica.
 
 ## Utente operativo
 - Creato utente **`ubuntu`** con sudo **senza password** (`/etc/sudoers.d/90-ubuntu`, `visudo -c` OK).
@@ -113,14 +144,19 @@ di proprietà dei file riparata il 2026-09-06.
   **locale cifrato** per `/srv/workbrain/`, con la decisione se possa uscire dalla macchina in capo a Raf.
 
 ## Bloccanti aperti verso Raf
-1. **Chiave SSH pubblica** per `ubuntu` (poi P-003 per il lockdown, con la precondizione sopra). Finché manca,
-   l'accesso resta a password di root **e ogni sessione gira come root**.
+1. ~~Chiave SSH pubblica per `ubuntu`~~ ✅ **chiusa il 2026-09-06**; ~~lockdown P-003~~ ✅ **eseguito il 2026-09-07**.
 2. ~~`plaud login`~~ ✅ **completato il 2026-09-05** (P-004). Token in `/home/ubuntu/.plaud/`, `plaud me` OK.
-3. Decisioni aperte da AUDIT-001: remote git, backup, hook (R-02/R-03), Docker, swap, Monarx, pin MCP, linger.
+3. ~~Decisioni AUDIT-001: remote git, backup, hook (R-02/R-03), Docker, swap, pin MCP, linger~~ ✅ tutte chiuse
+   con PLAN-001 Fasi A/B/C. **Restano aperte**: Monarx (rischio accettato consapevolmente, D-11), il backup fuori
+   dalla macchina, l'email negli autori dei commit, e `CLAUDE_CODE_DISABLE_MOUSE=1` in `/root/.bashrc`.
+4. **Riavvio di prova non ancora fatto**: che i timer utente e il daemon rootless ripartano da soli dopo un reboot
+   è sostenuto dall'evidenza strutturale (`Linger=yes`, unit `enabled` nei `.wants`), non da un riavvio vero.
+   Serve una finestra decisa da Raf: il riavvio interrompe la sessione.
 
 ## Riconnessione (sessioni future)
 Aprire la sessione come `ubuntu`, non root:
 `ssh ubuntu@<ip-vps>` → `cd ~/workbrain` → `claude`. (Per il login Plaud: `ssh -L 8199:localhost:8199 ubuntu@<ip-vps>`.)
-**Oggi non è possibile**: `ubuntu` ha la password bloccata e non c'è ancora la chiave (vedi §Accesso SSH).
-Nel frattempo si entra come root — dal proprio terminale (`ssh root@<ip>`) o dalla console web — e si riprende la
-sessione persistente con **`tmux attach -d -t SysAdmin`**, che è il motivo per cui tmux è installato.
+✅ **È la via normale dal 2026-09-07**: la chiave `id_workbrain` è installata e l'accesso a password non esiste
+più (P-003). Per sessioni lunghe conviene comunque `tmux attach -d -t SysAdmin`.
+Via di recupero se la chiave si perde: la console web di hPanel, che entra come root con una chiave iniettata da
+Hostinger — è il motivo per cui il lockdown usa `prohibit-password` e non `no`.

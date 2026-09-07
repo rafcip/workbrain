@@ -18,6 +18,12 @@ Nessun bug di runtime aperto: la pipeline non esiste ancora (fase bootstrap). Se
 - **PAT-05 — "Aggiungiamo un altro check"**: workaround su workaround. Un workaround che fallisce → STOP → ricerca SOTA.
 - **PAT-06 — Validare gli ingredienti invece del risultato**: il canary valida l'**output finale** (la nota prodotta),
   non i singoli step intermedi.
+- **PAT-07 — Guard-rail dichiarato ma inerte**: una direttiva scritta nel posto sbagliato non protegge niente, e
+  il commento accanto la fa sembrare attiva. Caso reale (2026-09-07): `RuntimeMaxSec=` in un servizio
+  `Type=oneshot` viene **ignorato** da systemd — il limite anti-hang del backup non esisteva, pur essendo scritto
+  e commentato. Generalizzazione: ogni guardia va **verificata sul valore effettivo**, non sulla riga di config
+  (`systemctl show -p TimeoutStartUSec`, non `grep` nel file). Stessa famiglia di R-02 (il gate dei test che
+  usciva sempre 0). Vedi [[2026-09-07-fase-c-container-rootless]].
 
 ## Formato di una entry
 ```

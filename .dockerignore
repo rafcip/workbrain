@@ -1,0 +1,12 @@
+# Il contesto di build non deve contenere ne' segreti ne' storia: sia per la dimensione,
+# sia perche' tutto cio' che entra nel contesto puo' finire in un layer dell'immagine.
+.git/
+.githooks/
+.claude/
+knowledge/
+docs/
+reports/
+tests/
+*.bak-pre-*
+**/.env
+**/env.prod
